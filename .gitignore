@@ -1,0 +1,6 @@
+procwatch_execve
+procwatch_openat
+src/*.bpf.o
+include/*.skel.h
+include/vmlinux.h
+include/bpf/
