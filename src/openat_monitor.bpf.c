@@ -53,11 +53,19 @@ static __always_inline int check_path(const char *path, struct open_event *e)
         bpf_probe_read_user_str(e->path, sizeof(e->path), path);
         return 1;
     }
-    /* .ssh/ */
-    if (buf[0]=='.' && buf[1]=='s' && buf[2]=='s' && buf[3]=='h' && buf[4]=='/') {
-        e->alert_type = ALERT_SSHKEY;
-        bpf_probe_read_user_str(e->path, sizeof(e->path), path);
-        return 1;
+    /* /.ssh/ anywhere in path */
+    {
+        int i;
+        #pragma unroll
+        for (i = 0; i < MAX_PATH_LEN - 6; i++) {
+            if (buf[i]   == '/' && buf[i+1] == '.' &&
+                buf[i+2] == 's' && buf[i+3] == 's' &&
+                buf[i+4] == 'h' && buf[i+5] == '/') {
+                e->alert_type = ALERT_SSHKEY;
+                bpf_probe_read_user_str(e->path, sizeof(e->path), path);
+                return 1;
+            }
+        }
     }
     return 0;
 }

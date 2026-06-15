@@ -55,6 +55,6 @@ ALERT     TIME     PID     UID   COMM             PATH
 
 ## 已知问题 / TODO
 
-- [ ] openat_monitor 当前仅匹配相对路径前缀，绝对路径的 `.ssh/` 访问需补充完整路径匹配
+
 - [ ] 待增加白名单机制，过滤已知合法进程的误报
 - [ ] 待增加日志持久化输出（JSON 格式）
