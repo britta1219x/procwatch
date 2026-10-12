@@ -30,6 +30,7 @@ flowchart LR
 - 使用 tracepoint 挂载 eBPF 程序，避免修改业务进程。
 - 使用 BTF 与 CO-RE 读取内核结构，降低对目标主机内核头文件的依赖。
 - 使用 256 KiB Ring Buffer 在内核态与用户态之间异步传递事件。
+- 记录用户路径读取失败和 Ring Buffer 预留失败次数；退出监控时在标准错误输出打印计数。
 - 使用 bpftool 自动生成 BPF Skeleton，由 libbpf 完成程序加载、挂载和资源释放。
 
 ## 环境要求
@@ -61,6 +62,9 @@ cd procwatch
 
 # 检查编译工具与内核 BTF，随后生成 vmlinux.h、BPF Skeleton 和可执行文件
 make
+
+# 不依赖内核 BTF 的路径规则单元测试
+make test
 
 # 进程创建监控
 sudo ./procwatch_execve
@@ -123,6 +127,10 @@ sudo head -n 1 /etc/shadow
 
 按 `Ctrl+C` 可安全退出监控程序。
 
+退出时程序会打印 `path read failures` 与 `ring buffer reserve failures`。后者只统计尝试提交事件时因预留失败而丢弃的次数；它不是完整的系统调用丢失率。两个监控程序各有独立计数。
+
+路径规则测试覆盖 `/etc/passwd`、`/etc/shadow`、`/etc/sudoers` 和包含 `/.ssh/` 的命中路径，以及备份文件名、相对路径、普通路径等反例。`/etc/sudoers.bak` 不会再被当作 `/etc/sudoers`。
+
 ## 支持范围与已知限制
 
 - 当前监控 `execve` 与 `openat` tracepoint，不覆盖 `execveat`、`openat2` 等其他入口。
@@ -136,5 +144,6 @@ sudo head -n 1 /etc/shadow
 
 - [ ] 增加白名单和可配置路径规则
 - [ ] 支持 JSON Lines 与文件持久化
-- [ ] 增加事件统计和丢包指标
+- [ ] 增加事件速率、消费延迟与端到端丢失率统计
 - [ ] 补充自动化构建与多内核兼容性测试
+

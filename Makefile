@@ -10,7 +10,7 @@ LIBS = -lbpf -lelf -lz
 
 ALL_TARGETS = procwatch_execve procwatch_openat
 
-.PHONY: all check-env clean
+.PHONY: all check-env clean test
 
 all: check-env $(ALL_TARGETS)
 
@@ -29,11 +29,19 @@ include/%.skel.h: src/%.bpf.o
 src/%.bpf.o: src/%.bpf.c include/vmlinux.h
 	$(CLANG) $(BPF_CFLAGS) $(INCLUDES) -c $< -o $@
 
-procwatch_execve: src/execve_monitor.c include/execve_monitor.skel.h
+src/openat_monitor.bpf.o: src/path_rules.h src/monitor_stats.h
+src/execve_monitor.bpf.o: src/monitor_stats.h
+
+procwatch_execve: src/execve_monitor.c src/monitor_stats.h include/execve_monitor.skel.h
 	$(CC) $(CFLAGS) -o $@ $< $(INCLUDES) $(LIBS)
 
-procwatch_openat: src/openat_monitor.c include/openat_monitor.skel.h
+procwatch_openat: src/openat_monitor.c src/path_rules.h src/monitor_stats.h include/openat_monitor.skel.h
 	$(CC) $(CFLAGS) -o $@ $< $(INCLUDES) $(LIBS)
+
+test: tests/path_rules_test.c src/path_rules.h
+	$(CC) -std=c11 -Wall -Wextra -Werror -o tests/path_rules_test tests/path_rules_test.c
+	./tests/path_rules_test
 
 clean:
-	rm -f src/*.bpf.o include/*.skel.h include/vmlinux.h $(ALL_TARGETS)
+	rm -f src/*.bpf.o include/*.skel.h include/vmlinux.h tests/path_rules_test $(ALL_TARGETS)
+

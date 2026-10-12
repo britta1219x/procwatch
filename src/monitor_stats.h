@@ -1,0 +1,10 @@
+#ifndef PROCWATCH_MONITOR_STATS_H
+#define PROCWATCH_MONITOR_STATS_H
+
+enum monitor_stat {
+    STAT_PATH_READ_FAILED = 0,
+    STAT_RINGBUF_RESERVE_FAILED = 1,
+    STAT_COUNT = 2,
+};
+
+#endif

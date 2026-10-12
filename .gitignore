@@ -4,3 +4,4 @@ src/*.bpf.o
 include/*.skel.h
 include/vmlinux.h
 include/bpf/
+tests/path_rules_test
