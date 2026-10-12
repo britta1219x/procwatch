@@ -2,6 +2,7 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>
+#include "monitor_stats.h"
 
 #define TASK_COMM_LEN 16
 #define MAX_FILENAME_LEN 256
@@ -19,6 +20,20 @@ struct {
     __uint(max_entries, 256 * 1024);
 } rb SEC(".maps");
 
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, STAT_COUNT);
+    __type(key, u32);
+    __type(value, u64);
+} stats SEC(".maps");
+
+static __always_inline void count_stat(u32 key)
+{
+    u64 *value = bpf_map_lookup_elem(&stats, &key);
+    if (value)
+        __sync_fetch_and_add(value, 1);
+}
+
 SEC("tracepoint/syscalls/sys_enter_execve")
 int handle_execve(struct trace_event_raw_sys_enter *ctx)
 {
@@ -27,8 +42,10 @@ int handle_execve(struct trace_event_raw_sys_enter *ctx)
     u64 pid_tgid = bpf_get_current_pid_tgid();
 
     e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
-    if (!e)
+    if (!e) {
+        count_stat(STAT_RINGBUF_RESERVE_FAILED);
         return 0;
+    }
 
     e->pid = pid_tgid >> 32;
     e->uid = bpf_get_current_uid_gid() & 0xffffffff;
@@ -37,11 +54,16 @@ int handle_execve(struct trace_event_raw_sys_enter *ctx)
     e->ppid = BPF_CORE_READ(task, real_parent, tgid);
 
     bpf_get_current_comm(&e->comm, sizeof(e->comm));
-    bpf_probe_read_user_str(e->filename, sizeof(e->filename),
-                            (const char *)ctx->args[0]);
+    if (bpf_probe_read_user_str(e->filename, sizeof(e->filename),
+                                (const char *)ctx->args[0]) < 0) {
+        count_stat(STAT_PATH_READ_FAILED);
+        bpf_ringbuf_discard(e, 0);
+        return 0;
+    }
 
     bpf_ringbuf_submit(e, 0);
     return 0;
 }
 
 char LICENSE[] SEC("license") = "GPL";
+

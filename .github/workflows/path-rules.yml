@@ -1,0 +1,13 @@
+name: Path rules
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run path rule tests
+        run: make test
