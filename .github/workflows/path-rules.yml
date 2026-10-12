@@ -21,4 +21,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang llvm linux-tools-common linux-tools-generic libbpf-dev libelf-dev zlib1g-dev
       - name: Build monitors
-        run: make
+        run: |
+          BPFTOOL_BIN=$(find /usr/lib/linux-tools -type f -name bpftool -print -quit)
+          test -n "$BPFTOOL_BIN"
+          make BPFTOOL="$BPFTOOL_BIN"
