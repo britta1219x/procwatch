@@ -31,7 +31,9 @@ classify_path(const char buf[MAX_PATH_LEN])
         buf[12]=='\0')
         return ALERT_SUDOERS;
 
+#ifdef __clang__
 #pragma unroll
+#endif
     for (int i = 0; i < MAX_PATH_LEN - 6; i++) {
         if (buf[i] == '/' && buf[i + 1] == '.' &&
             buf[i + 2] == 's' && buf[i + 3] == 's' &&
